@@ -70,7 +70,7 @@ void initFileSystem() {
 }
 
 // functions associated with data files
-void loadFileSystem() {
+void syncFileSystem() {
      // create the file
      FILE* file;
      file = fopen("database", "w+");
