@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <math.h>
 
 // define structures
 typedef struct Block Block;
@@ -36,7 +37,7 @@ void initFileSystem() {
      // initialize informations about the file system;
      db.numberOfBlocks = 256;
      db.blockSize = sizeof(Block) - sizeof(int);
-     db.numberOfMeta = 20;
+     db.numberOfMeta = 24;
 
      // initialize metadata
      inodes = malloc(db.numberOfMeta * sizeof(Meta));
@@ -76,11 +77,13 @@ void syncFileSystem() {
      file = fopen("database", "w+");
      rewind(file);
 
+     int nbrBlock = 0;
      // write the allocation table in the file
      Block buffer;
      buffer = db.disk[0];
      fwrite(&buffer, sizeof(Block), 1, file);
-     
+     nbrBlock++;
+
      // write the metadata in the file
      Meta metabuffer;
      for (int i = 0; i < db.numberOfMeta; i++)
@@ -88,8 +91,11 @@ void syncFileSystem() {
           metabuffer = inodes[i];
           fwrite(&metabuffer, sizeof(Meta), 1, file);
      }
+     int nbrMetaPerBlock = db.blockSize / sizeof(Meta);
+     nbrBlock += ceil((double)db.numberOfMeta / nbrMetaPerBlock);
 
      // write the disk in file
+     fseek(file, nbrBlock, SEEK_SET);
      for (int i = 1; i < db.numberOfBlocks; i++)
      {
           buffer = db.disk[i];
