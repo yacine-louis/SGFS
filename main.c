@@ -55,19 +55,52 @@ void initFileSystem() {
      // initialize the allocation table
      for (int i = 0; i < db.blockSize; i++)
      {
-          db.disk->data[i] = 0;
+          db.disk[0].data[i] = 0;
      }
 
      // initialize the disk
-     for (int i = 0; i < db.numberOfBlocks; i++)
+     for (int i = 1; i < db.numberOfBlocks; i++)
      {
           for (int j = 0; j < db.blockSize; j++)
           {
-               db.disk->data[i] = 0;
+               db.disk[i].data[j] = 0;
           }
      }
      
 }
+
+// functions associated with data files
+void loadFileSystem() {
+     // create the file
+     FILE* file;
+     file = fopen("database", "w+");
+     rewind(file);
+
+     // write the allocation table in the file
+     Block buffer;
+     buffer = db.disk[0];
+     fwrite(&buffer, sizeof(Block), 1, file);
+     fclose(file);
+
+     // write the metadata in the file
+     Meta metabuffer;
+     for (int i = 0; i < db.numberOfMeta; i++)
+     {
+          metabuffer = inodes[i];
+          fwrite(&metabuffer, sizeof(Meta), 1, file);
+     }
+
+     // write the disk in file
+     for (int i = 1; i < db.numberOfBlocks; i++)
+     {
+          buffer = db.disk[i];
+          fwrite(&buffer, sizeof(Block), 1, file);
+     }
+     
+}
+
+
+
 
 int main() {
 
