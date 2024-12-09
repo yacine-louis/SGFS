@@ -42,7 +42,7 @@ void initFileSystem() {
      inodes = malloc(db.numberOfMeta * sizeof(Meta));
      for (int i = 0; i < db.numberOfMeta; i++)
      {
-          srtcpy(inodes[i].name, "");
+          strcpy(inodes[i].name, "");
           inodes[i].startBlock = -1;
           inodes[i].FileSizeInBlocks = 0;
           inodes[i].FileSizeInRecords = 0;
@@ -80,8 +80,7 @@ void syncFileSystem() {
      Block buffer;
      buffer = db.disk[0];
      fwrite(&buffer, sizeof(Block), 1, file);
-     fclose(file);
-
+     
      // write the metadata in the file
      Meta metabuffer;
      for (int i = 0; i < db.numberOfMeta; i++)
@@ -96,13 +95,16 @@ void syncFileSystem() {
           buffer = db.disk[i];
           fwrite(&buffer, sizeof(Block), 1, file);
      }
-     
+
+     fclose(file);
 }
 
 
 
 
 int main() {
-
+     initFileSystem();
+     syncFileSystem();
+     printf("working");
      return 0;
 }
