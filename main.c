@@ -73,7 +73,6 @@ void initFileSystem() {
      
 }
 
-// functions associated with data files
 void syncFileSystem() {
      // create the file
      FILE* file;
@@ -180,9 +179,9 @@ void printFileSystem() {
 
 int main() {
      initFileSystem(); // init system
-     syncFileSystem(); // write the data to system
-     loadFileSystem();
-     printFileSystem();
+     syncFileSystem(); // write the data to file system
+     loadFileSystem(); // read the data from file system
+     printFileSystem(); // print the file system
      printf("working");
      return 0;
 }
