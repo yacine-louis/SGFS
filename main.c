@@ -68,6 +68,7 @@ void initFileSystem() {
           {
                db.disk[i].data[j] = 0;
           }
+          db.disk[i].next = -1;
      }
      
 }
@@ -172,7 +173,7 @@ void printFileSystem() {
      printf("blocks: \n");
      for (int i = 1; i < db.numberOfBlocks; i++)
      {
-          printf("blocks number: %d, next block number: %d", i, db.disk[i].next);
+          printf("blocks number: %d, next block number: %d \n", i, db.disk[i].next);
      }
 }
 
@@ -180,7 +181,8 @@ void printFileSystem() {
 int main() {
      initFileSystem(); // init system
      syncFileSystem(); // write the data to system
-
+     loadFileSystem();
+     printFileSystem();
      printf("working");
      return 0;
 }
