@@ -25,6 +25,7 @@ struct Meta {
 struct MS {
      int numberOfBlocks;
      int blockSize;
+     int blockDataSize;
      int numberOfMeta;
      Block* disk;
 };
@@ -36,7 +37,8 @@ MS db;
 void initFileSystem() {
      // initialize informations about the file system;
      db.numberOfBlocks = 256;
-     db.blockSize = sizeof(Block) - sizeof(int);
+     db.blockSize = sizeof(Block);
+     db.blockDataSize = sizeof(Block) - sizeof(int);
      db.numberOfMeta = 24;
 
      // initialize metadata
@@ -54,7 +56,7 @@ void initFileSystem() {
      // initialize MS
      db.disk = malloc(db.numberOfBlocks * sizeof(Block));
      // initialize the allocation table
-     for (int i = 0; i < db.blockSize; i++)
+     for (int i = 0; i < db.blockDataSize; i++)
      {
           db.disk[0].data[i] = 0;
      }
@@ -62,7 +64,7 @@ void initFileSystem() {
      // initialize the disk
      for (int i = 1; i < db.numberOfBlocks; i++)
      {
-          for (int j = 0; j < db.blockSize; j++)
+          for (int j = 0; j < db.blockDataSize; j++)
           {
                db.disk[i].data[j] = 0;
           }
@@ -91,11 +93,11 @@ void syncFileSystem() {
           metabuffer = inodes[i];
           fwrite(&metabuffer, sizeof(Meta), 1, file);
      }
-     int nbrMetaPerBlock = db.blockSize / sizeof(Meta);
+     int nbrMetaPerBlock = db.blockDataSize / sizeof(Meta);
      nbrBlock += ceil((double)db.numberOfMeta / nbrMetaPerBlock);
 
      // write the disk in file
-     fseek(file, nbrBlock, SEEK_SET);
+     fseek(file, nbrBlock*db.blockSize, SEEK_SET);
      for (int i = 1; i < db.numberOfBlocks; i++)
      {
           buffer = db.disk[i];
