@@ -45,7 +45,7 @@ void initFileSystem() {
      inodes = malloc(db.numberOfMeta * sizeof(Meta));
      for (int i = 0; i < db.numberOfMeta; i++)
      {
-          strcpy(inodes[i].name, "");
+          strcpy(inodes[i].name, "hello");
           inodes[i].startBlock = -1;
           inodes[i].FileSizeInBlocks = 0;
           inodes[i].FileSizeInRecords = 0;
@@ -107,12 +107,44 @@ void syncFileSystem() {
      fclose(file);
 }
 
+void loadFileSystem() {
+     
+}
 
+void printFileSystem() {
+
+     printf("MS informations: \n");
+     printf("number of blocks: %d \n", db.numberOfBlocks);
+     printf("block size: %d \n", db.blockSize);
+     printf("block data size: %d \n", db.blockDataSize);
+     printf("number of metadata: %d \n", db.numberOfMeta);
+
+     printf("allocation table: \n");
+     for (int i = 0; i < db.blockDataSize; i++)
+     {
+          printf("%d ", db.disk[0].data[i]);
+     }
+     printf("\n");
+
+     printf("meta data: \n");
+     for (int i = 0; i < db.numberOfMeta; i++)
+     {
+          printf("file name: %s, startBlock: %d, FileSizeInBlocks: %d, fileSizeInRecords: %d, globalOrganisationMode: %d, internalOrganisationMode: %d", inodes[i].name, inodes[i].startBlock, inodes[i].FileSizeInBlocks, inodes[i].FileSizeInRecords, inodes[i].globalOrganisationMode, inodes[i].internalOrganisationMode);
+          printf("\n");
+     }
+     
+     printf("blocks: \n");
+     for (int i = 0; i < db.numberOfBlocks; i++)
+     {
+          printf("blocks number: %d, next block number: %d", i, db.disk[i].next);
+     }
+}
 
 
 int main() {
-     initFileSystem();
-     syncFileSystem();
+     initFileSystem(); // init system
+     syncFileSystem(); // write the data to system
+
      printf("working");
      return 0;
 }
