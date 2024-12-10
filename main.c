@@ -11,6 +11,7 @@ typedef struct MS MS;
 struct Block {
      char data[256];
      int next;
+     
 };
 
 struct Meta {
