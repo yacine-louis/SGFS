@@ -79,25 +79,29 @@ void syncFileSystem() {
      file = fopen("database", "w+");
      rewind(file);
 
-     int nbrBlock = 0;
      // write the allocation table in the file
      Block buffer;
      buffer = db.disk[0];
-     fwrite(&buffer, sizeof(Block), 1, file);
-     nbrBlock++;
+     fwrite(&buffer, sizeof(buffer), 1, file);
 
      // write the metadata in the file
-     Meta metabuffer;
-     for (int i = 0; i < db.numberOfMeta; i++)
-     {
-          metabuffer = inodes[i];
-          fwrite(&metabuffer, sizeof(Meta), 1, file);
-     }
      int nbrMetaPerBlock = db.blockDataSize / sizeof(Meta);
-     nbrBlock += ceil((double)db.numberOfMeta / nbrMetaPerBlock);
+     Meta metabuffer[nbrMetaPerBlock];
+     int nbrBlock = ceil((double)db.numberOfMeta / nbrMetaPerBlock);
+     int k = 0;
+     int j;
+     for (int i = 0; i < nbrBlock; i++)
+     {
+          j = 0;
+          while(j < nbrMetaPerBlock && k < db.numberOfMeta) {
+               metabuffer[j] = inodes[k];
+               j++;
+               k++;
+          }
+          fwrite(&metabuffer, sizeof(metabuffer) + sizeof(int), 1, file);
+     }
 
      // write the disk in file
-     fseek(file, nbrBlock*db.blockSize, SEEK_SET);
      for (int i = 1; i < db.numberOfBlocks; i++)
      {
           buffer = db.disk[i];
@@ -108,6 +112,38 @@ void syncFileSystem() {
 }
 
 void loadFileSystem() {
+     FILE* file;
+     file = fopen("database", "r");
+     rewind(file);
+
+     // read allocation table from the file
+     Block buffer;
+     fread(&buffer, sizeof(buffer), 1, file);
+     db.disk[0] = buffer;
+
+     // read meta data from the file
+     int nbrMetaPerBlock = db.blockDataSize / sizeof(Meta);
+     Meta metabuffer[nbrMetaPerBlock];
+     int nbrBlock = ceil((double)db.numberOfMeta / nbrMetaPerBlock);
+     int k = 0;
+     int j;
+     for (int i = 0; i < nbrBlock; i++)
+     {
+          fread(&metabuffer, sizeof(metabuffer) + sizeof(int), 1, file);
+          j = 0;
+          while(j < nbrMetaPerBlock && k < db.numberOfMeta) {
+               inodes[k] = metabuffer[j];
+               j++;
+               k++;
+          }
+     }
+
+     // read data blocks from the file
+     for (int i = 0; i < db.numberOfBlocks; i++)
+     {
+          fread(&buffer, sizeof(buffer), 1, file);
+          db.disk[i] = buffer;
+     }
      
 }
 
@@ -134,7 +170,7 @@ void printFileSystem() {
      }
      
      printf("blocks: \n");
-     for (int i = 0; i < db.numberOfBlocks; i++)
+     for (int i = 1; i < db.numberOfBlocks; i++)
      {
           printf("blocks number: %d, next block number: %d", i, db.disk[i].next);
      }
