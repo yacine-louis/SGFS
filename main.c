@@ -7,6 +7,8 @@
 typedef struct Block Block;
 typedef struct Meta Meta;
 typedef struct MS MS;
+typedef struct Client Client;
+typedef struct Product Product;
 
 struct Block {
      char data[256];
@@ -29,6 +31,21 @@ struct MS {
      int blockDataSize;
      int numberOfMeta;
      Block* disk;
+};
+
+struct Client 
+{ // sizeof(Client) = 32 Byte
+     int ID;
+     char name[20];
+     int age;
+     float balance;
+};
+
+struct Product
+{ // sizeof(Product) = 24 Byte
+     int ID;
+     char name[16];
+     float price;
 };
 
 // Functions associated with virtual disk
