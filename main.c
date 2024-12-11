@@ -36,11 +36,27 @@ Meta* inodes;
 MS db; 
 
 void initFileSystem() {
-     // initialize informations about the file system;
+     // initialize informations about the MS
      db.numberOfBlocks = 256;
      db.blockSize = sizeof(Block);
      db.blockDataSize = sizeof(Block) - sizeof(int);
      db.numberOfMeta = 24;
+     db.disk = malloc(db.numberOfBlocks * sizeof(Block));
+
+     // create the file system
+     FILE* MSFile;
+     MSFile = fopen("database", "w+");
+
+     // initialize the allocation table
+     for (int i = 0; i < db.blockDataSize; i++)
+     {
+          db.disk[0].data[i] = 0;
+     }
+
+     // write the allocation table in the file
+     Block buffer;
+     buffer = db.disk[0];
+     fwrite(&buffer, sizeof(Block), 1, MSFile);
 
      // initialize metadata
      inodes = malloc(db.numberOfMeta * sizeof(Meta));
@@ -53,37 +69,6 @@ void initFileSystem() {
           inodes[i].globalOrganisationMode = -1;
           inodes[i].internalOrganisationMode = -1;
      }
-
-     // initialize MS
-     db.disk = malloc(db.numberOfBlocks * sizeof(Block));
-     // initialize the allocation table
-     for (int i = 0; i < db.blockDataSize; i++)
-     {
-          db.disk[0].data[i] = 0;
-     }
-
-     // initialize the disk
-     for (int i = 1; i < db.numberOfBlocks; i++)
-     {
-          for (int j = 0; j < db.blockDataSize; j++)
-          {
-               db.disk[i].data[j] = 0;
-          }
-          db.disk[i].next = -1;
-     }
-     
-}
-
-void syncFileSystem() {
-     // create the file
-     FILE* file;
-     file = fopen("database", "w+");
-     rewind(file);
-
-     // write the allocation table in the file
-     Block buffer;
-     buffer = db.disk[0];
-     fwrite(&buffer, sizeof(buffer), 1, file);
 
      // write the metadata in the file
      int nbrMetaPerBlock = db.blockDataSize / sizeof(Meta);
@@ -99,18 +84,30 @@ void syncFileSystem() {
                j++;
                k++;
           }
-          fwrite(&metabuffer, sizeof(metabuffer) + sizeof(int), 1, file);
+          fwrite(&metabuffer, sizeof(Block), 1, MSFile);
+     }
+     
+     // initialize the disk
+     for (int i = 1; i < db.numberOfBlocks; i++)
+     {
+          for (int j = 0; j < db.blockDataSize; j++)
+          {
+               db.disk[i].data[j] = 0;
+          }
+          db.disk[i].next = -1;
      }
 
      // write the disk in file
      for (int i = 1; i < db.numberOfBlocks; i++)
      {
           buffer = db.disk[i];
-          fwrite(&buffer, sizeof(Block), 1, file);
+          fwrite(&buffer, sizeof(Block), 1, MSFile);
      }
 
-     fclose(file);
+     fclose(MSFile);
 }
+
+
 
 void loadFileSystem() {
      FILE* file;
@@ -180,7 +177,6 @@ void printFileSystem() {
 
 int main() {
      initFileSystem(); // init system
-     syncFileSystem(); // write the data to file system
      loadFileSystem(); // read the data from file system
      printFileSystem(); // print the file system
      printf("working");
