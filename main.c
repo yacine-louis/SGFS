@@ -16,7 +16,7 @@ struct Block {
      
 };
 
-struct Meta {
+struct Meta { // sizeof(Meta) = 32 Byte
      char name[12];
      int startBlock; // First block of the file
      int FileSizeInBlocks; // File size in blocks
@@ -125,7 +125,6 @@ void initFileSystem() {
 }
 
 
-
 void loadFileSystem() {
      FILE* file;
      file = fopen("database", "r");
@@ -191,11 +190,54 @@ void printFileSystem() {
      }
 }
 
+void createDataFile() {
+     Meta inode;
+     int recordType;
+     printf("Enter the name of the file: ");
+     scanf("%11[^\n]", inode.name);
+     printf("Enter the number of records: ");
+     scanf("%d", &inode.FileSizeInRecords);
+     do
+     {
+          printf("choose the type of the record: \n[0] ->  Client \n[1] -> Product\nanswer: ");
+          scanf("%d", &recordType);
+     } while (recordType != 1 && recordType != 0);
+
+     int nbrRecordsPerBlock;
+     switch (recordType)
+     {
+     case 0:
+          nbrRecordsPerBlock = db.blockDataSize / sizeof(Client);
+          inode.FileSizeInBlocks = ceil((double)inode.FileSizeInRecords / nbrRecordsPerBlock);
+          break;
+     case 1:
+          nbrRecordsPerBlock = db.blockDataSize / sizeof(Product);
+          inode.FileSizeInBlocks = ceil((double)inode.FileSizeInRecords / nbrRecordsPerBlock);
+          break;
+     default:
+          break;
+     }
+
+     do
+     {
+          printf("choose one of the following global organisation modes:\n[0] -> contiguous \n[1] -> chained\nanswer:");
+          scanf("%d", &inode.globalOrganisationMode);
+     } while (inode.globalOrganisationMode != 1 && inode.globalOrganisationMode != 0);
+     
+     do
+     {
+          printf("choose one of the following global organisation modes:\n[0] -> fixed size \n[1] -> variable size\nanswer:");
+          scanf("%d", &inode.internalOrganisationMode);
+     } while (inode.internalOrganisationMode != 1 && inode.internalOrganisationMode != 0);
+
+     printf("name: %s, num records: %d, num blocks: %d, global mode: %d, internal mode: %d \n", inode.name, inode.FileSizeInRecords, inode.FileSizeInBlocks, inode.globalOrganisationMode, inode.internalOrganisationMode);
+}
 
 int main() {
      initFileSystem(); // init system
      loadFileSystem(); // read the data from file system
      printFileSystem(); // print the file system
+     createDataFile();
      printf("working");
      return 0;
 }
