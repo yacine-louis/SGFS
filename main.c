@@ -124,7 +124,6 @@ void initFileSystem() {
      fclose(MSFile);
 }
 
-
 void loadFileSystem() {
      FILE* file;
      file = fopen("database", "r");
@@ -231,6 +230,10 @@ void createDataFile() {
      } while (inode.internalOrganisationMode != 1 && inode.internalOrganisationMode != 0);
 
      printf("name: %s, num records: %d, num blocks: %d, global mode: %d, internal mode: %d \n", inode.name, inode.FileSizeInRecords, inode.FileSizeInBlocks, inode.globalOrganisationMode, inode.internalOrganisationMode);
+}
+
+int findFreeBlock() {
+     
 }
 
 int main() {
