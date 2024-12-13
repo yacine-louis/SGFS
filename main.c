@@ -168,57 +168,50 @@ void printFileSystem() {
      }
 }
 
-// void createDataFile() {
-//      Meta inode;
-//      int recordType;
-//      printf("Enter the name of the file: ");
-//      scanf("%11[^\n]", inode.name);
-//      printf("Enter the number of records: ");
-//      scanf("%d", &inode.FileSizeInRecords);
-//      do
-//      {
-//           printf("choose the type of the record: \n[0] ->  Client \n[1] -> Product\nanswer: ");
-//           scanf("%d", &recordType);
-//      } while (recordType != 1 && recordType != 0);
+void createFile() {
+     Meta inode;
+     int recordType;
+     printf("Enter the name of the file: ");
+     scanf("%11[^\n]", inode.name);
+     printf("Enter the number of records: ");
+     scanf("%d", &inode.file_size_in_records);
+     do
+     {
+          printf("choose the type of the record: \n[0] ->  Client \n[1] -> Product\nanswer: ");
+          scanf("%d", &recordType);
+     } while (recordType != 0 && recordType != 1);
 
-//      int nbrRecordsPerBlock;
-//      switch (recordType)
-//      {
-//      case 0:
-//           nbrRecordsPerBlock = db.blockDataSize / sizeof(Client);
-//           inode.FileSizeInBlocks = ceil((double)inode.FileSizeInRecords / nbrRecordsPerBlock);
-//           break;
-//      case 1:
-//           nbrRecordsPerBlock = db.blockDataSize / sizeof(Product);
-//           inode.FileSizeInBlocks = ceil((double)inode.FileSizeInRecords / nbrRecordsPerBlock);
-//           break;
-//      default:
-//           break;
-//      }
+     int nbr_records_per_block;
+     if(recordType == 0) {
+          nbr_records_per_block = secondary_memory.inode.block_data_size / sizeof(Client); 
+     } else {
+          nbr_records_per_block = secondary_memory.inode.block_data_size / sizeof(Product);
+     }
+     inode.file_size_in_blocks = ceil((double)inode.file_size_in_records / nbr_records_per_block);
 
-//      do
-//      {
-//           printf("choose one of the following global organisation modes:\n[0] -> contiguous \n[1] -> chained\nanswer:");
-//           scanf("%d", &inode.globalOrganisationMode);
-//      } while (inode.globalOrganisationMode != 1 && inode.globalOrganisationMode != 0);
+     do
+     {
+          printf("choose one of the following global organisation modes:\n[0] -> contiguous \n[1] -> chained\nanswer:");
+          scanf("%d", &inode.global_organisation_mode);
+     } while (inode.global_organisation_mode != 0 && inode.global_organisation_mode != 1);
      
-//      do
-//      {
-//           printf("choose one of the following internal organisation modes:\n[0] -> sorted \n[1] -> not sorted\nanswer:");
-//           scanf("%d", &inode.internalOrganisationMode);
-//      } while (inode.internalOrganisationMode != 1 && inode.internalOrganisationMode != 0);
+     do
+     {
+          printf("choose one of the following internal organisation modes:\n[0] -> sorted \n[1] -> not sorted\nanswer:");
+          scanf("%d", &inode.internal_organisation_mode);
+     } while (inode.internal_organisation_mode != 0 && inode.internal_organisation_mode != 1);
 
-//      printf("name: %s, num records: %d, num blocks: %d, global mode: %d, internal mode: %d \n", inode.name, inode.FileSizeInRecords, inode.FileSizeInBlocks, inode.globalOrganisationMode, inode.internalOrganisationMode);
-// }
+     printf("name: %s, num records: %d, num blocks: %d, global mode: %d, internal mode: %d \n", inode.name, inode.file_size_in_records, inode.file_size_in_blocks, inode.global_organisation_mode, inode.internal_organisation_mode);
+}
 
-// int findFreeBlock() {
+int findFreeBlock() {
      
-// }
+}
 
 int main() {
      initFileSystem(); // init system
      printFileSystem(); // print the file system
-     // createDataFile();
+     createFile();
      printf("working");
      return 0;
 }
