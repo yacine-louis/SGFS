@@ -6,6 +6,7 @@
 // define structures
 typedef struct Block Block;
 typedef struct Meta Meta;
+typedef struct MSMeta MSMeta;
 typedef struct MS MS;
 typedef struct Client Client;
 typedef struct Product Product;
@@ -13,24 +14,28 @@ typedef struct Product Product;
 struct Block {
      char data[256];
      int next;
-     
 };
 
-struct Meta { // sizeof(Meta) = 32 Byte
+struct Meta {
      char name[12];
-     int startBlock; // First block of the file
-     int FileSizeInBlocks; // File size in blocks
-     int FileSizeInRecords; // File size in records
-     int globalOrganisationMode; // 0 for contiguous, 1 for chained, -1 if user havn't choosen yet
-     int internalOrganisationMode; // 0 for records not sorted, 1 for records sorted, -1 if user havn't choosen yet
+     int start_block; // First block of the file
+     int file_size_in_blocks; 
+     int file_size_in_records;
+     int global_organisation_mode; // 0 for contiguous, 1 for chained, -1 when initialize
+     int internal_organisation_mode; // 0 for records not sorted, 1 for records sorted, -1 when initialize
+};
+
+struct MSMeta {
+     int number_of_blocks;
+     int block_size;
+     int block_data_size;
+     int number_of_meta;
+     int size_of_meta;
 };
 
 struct MS {
-     int numberOfBlocks;
-     int blockSize;
-     int blockDataSize;
-     int numberOfMeta;
-     Block* disk;
+     MSMeta inode;
+     FILE* disk;
 };
 
 struct Client 
@@ -50,197 +55,170 @@ struct Product
 
 // Functions associated with virtual disk
 Meta* inodes;
-MS db; 
+MS secondary_memory; 
 
 void initFileSystem() {
+
      // initialize informations about the MS
-     db.numberOfBlocks = 256;
-     db.blockSize = sizeof(Block);
-     db.blockDataSize = sizeof(Block) - sizeof(int);
-     db.numberOfMeta = 24;
-     db.disk = malloc(db.numberOfBlocks * sizeof(Block));
-
+     secondary_memory.inode.number_of_blocks = 256;
+     secondary_memory.inode.block_size = sizeof(Block);
+     secondary_memory.inode.block_data_size = sizeof(Block) - sizeof(int);
+     secondary_memory.inode.number_of_meta = 10;
+     secondary_memory.inode.size_of_meta = sizeof(Meta);
      // create the file system
-     FILE* MSFile;
-     MSFile = fopen("database", "w+");
+     secondary_memory.disk = fopen("database", "w+");
 
+     // db.disk = malloc(db.numberOfBlocks * sizeof(Block));
+
+    
+     Block bloc;
+     Block buffer;
      // initialize the allocation table
-     for (int i = 0; i < db.blockDataSize; i++)
+     for (int i = 0; i < secondary_memory.inode.block_data_size; i++)
      {
-          db.disk[0].data[i] = 0;
+          bloc.data[i] = 0;
      }
-
-     // write the allocation table in the file
-     Block buffer;
-     buffer = db.disk[0];
-     fwrite(&buffer, sizeof(Block), 1, MSFile);
-
+     buffer = bloc;
+     fwrite(&buffer, sizeof(Block), 1, secondary_memory.disk);
+     
      // initialize metadata
-     inodes = malloc(db.numberOfMeta * sizeof(Meta));
-     for (int i = 0; i < db.numberOfMeta; i++)
-     {
-          strcpy(inodes[i].name, "hello");
-          inodes[i].startBlock = -1;
-          inodes[i].FileSizeInBlocks = 0;
-          inodes[i].FileSizeInRecords = 0;
-          inodes[i].globalOrganisationMode = -1;
-          inodes[i].internalOrganisationMode = -1;
-     }
-
-     // write the metadata in the file
-     int nbrMetaPerBlock = db.blockDataSize / sizeof(Meta);
-     Meta metabuffer[nbrMetaPerBlock];
-     int nbrBlock = ceil((double)db.numberOfMeta / nbrMetaPerBlock);
-     int k = 0;
-     int j;
-     for (int i = 0; i < nbrBlock; i++)
-     {
-          j = 0;
-          while(j < nbrMetaPerBlock && k < db.numberOfMeta) {
-               metabuffer[j] = inodes[k];
-               j++;
-               k++;
-          }
-          fwrite(&metabuffer, sizeof(Block), 1, MSFile);
-     }
      
-     // initialize the disk
-     for (int i = 1; i < db.numberOfBlocks; i++)
+     Meta inode;
+     int nbr_meta_per_block = secondary_memory.inode.block_data_size / sizeof(Meta);
+     Meta metabuffer[nbr_meta_per_block];
+     int nbr_block = ceil((double)secondary_memory.inode.number_of_meta / nbr_meta_per_block);
+     int k = 0;
+     for (int i = 0; i < nbr_block; i++)
      {
-          for (int j = 0; j < db.blockDataSize; j++)
+          int j = 0;
+          while (j < nbr_meta_per_block && k < secondary_memory.inode.number_of_meta)
           {
-               db.disk[i].data[j] = 0;
-          }
-          db.disk[i].next = -1;
-     }
-
-     // write the disk in file
-     for (int i = 1; i < db.numberOfBlocks; i++)
-     {
-          buffer = db.disk[i];
-          fwrite(&buffer, sizeof(Block), 1, MSFile);
-     }
-
-     fclose(MSFile);
-}
-
-void loadFileSystem() {
-     FILE* file;
-     file = fopen("database", "r");
-     rewind(file);
-
-     // read allocation table from the file
-     Block buffer;
-     fread(&buffer, sizeof(buffer), 1, file);
-     db.disk[0] = buffer;
-
-     // read meta data from the file
-     int nbrMetaPerBlock = db.blockDataSize / sizeof(Meta);
-     Meta metabuffer[nbrMetaPerBlock];
-     int nbrBlock = ceil((double)db.numberOfMeta / nbrMetaPerBlock);
-     int k = 0;
-     int j;
-     for (int i = 0; i < nbrBlock; i++)
-     {
-          fread(&metabuffer, sizeof(metabuffer) + sizeof(int), 1, file);
-          j = 0;
-          while(j < nbrMetaPerBlock && k < db.numberOfMeta) {
-               inodes[k] = metabuffer[j];
+               strcpy(inode.name, "hello");
+               inode.start_block = -1;
+               inode.file_size_in_blocks = 0;
+               inode.file_size_in_records = 0;
+               inode.global_organisation_mode = -1;
+               inode.internal_organisation_mode = -1;
+               metabuffer[j] = inode;
                j++;
                k++;
           }
-     }
-
-     // read data blocks from the file
-     for (int i = 0; i < db.numberOfBlocks; i++)
-     {
-          fread(&buffer, sizeof(buffer), 1, file);
-          db.disk[i] = buffer;
+          fwrite(metabuffer, sizeof(Block), 1, secondary_memory.disk);
      }
      
+     // initialize the disk blocks
+     for (int i = 1; i < secondary_memory.inode.number_of_blocks; i++)
+     {
+          for (int j = 0; j < secondary_memory.inode.block_data_size; j++)
+          {
+               bloc.data[j] = 0;
+          }
+          bloc.next = -1;
+          buffer = bloc;
+          fwrite(&buffer, sizeof(Block), 1, secondary_memory.disk);
+     }
+
 }
 
 void printFileSystem() {
 
      printf("MS informations: \n");
-     printf("number of blocks: %d \n", db.numberOfBlocks);
-     printf("block size: %d \n", db.blockSize);
-     printf("block data size: %d \n", db.blockDataSize);
-     printf("number of metadata: %d \n", db.numberOfMeta);
+     printf("number of blocks: %d \n", secondary_memory.inode.number_of_blocks);
+     printf("block size: %d \n", secondary_memory.inode.block_size);
+     printf("block data size: %d \n", secondary_memory.inode.block_data_size);
+     printf("number of metadata: %d \n", secondary_memory.inode.number_of_meta);
+
+     Block buffer;
+
+     secondary_memory.disk = fopen("database", "r");
+     rewind(secondary_memory.disk);
 
      printf("allocation table: \n");
-     for (int i = 0; i < db.blockDataSize; i++)
+     fread(&buffer, sizeof(Block), 1, secondary_memory.disk);
+     for (int i = 0; i < secondary_memory.inode.block_data_size; i++)
      {
-          printf("%d ", db.disk[0].data[i]);
+          printf("%d ", buffer.data[i]);
      }
      printf("\n");
 
      printf("meta data: \n");
-     for (int i = 0; i < db.numberOfMeta; i++)
+     int nbr_meta_per_block = secondary_memory.inode.block_data_size / sizeof(Meta);
+     Meta metabuffer[nbr_meta_per_block];
+     int nbr_block = ceil((double)secondary_memory.inode.number_of_meta / nbr_meta_per_block);
+
+     int k = 0;
+     for (int i = 0; i < nbr_block; i++)
      {
-          printf("file name: %s, startBlock: %d, FileSizeInBlocks: %d, fileSizeInRecords: %d, globalOrganisationMode: %d, internalOrganisationMode: %d", inodes[i].name, inodes[i].startBlock, inodes[i].FileSizeInBlocks, inodes[i].FileSizeInRecords, inodes[i].globalOrganisationMode, inodes[i].internalOrganisationMode);
-          printf("\n");
+          fread(metabuffer, sizeof(Block), 1, secondary_memory.disk);
+          int j = 0;
+          while (j < nbr_meta_per_block && k < secondary_memory.inode.number_of_meta)
+          {
+               printf("file name: %s, startBlock: %d, FileSizeInBlocks: %d, fileSizeInRecords: %d, globalOrganisationMode: %d, internalOrganisationMode: %d", metabuffer->name, metabuffer->start_block, metabuffer->file_size_in_blocks, metabuffer->file_size_in_records, metabuffer->global_organisation_mode, metabuffer->internal_organisation_mode);
+               printf("\n");
+               j++;
+               k++;
+          }
      }
-     
+     fseek(secondary_memory.disk, (nbr_block + 1) * sizeof(Block), SEEK_SET);
      printf("blocks: \n");
-     for (int i = 1; i < db.numberOfBlocks; i++)
+     for (int i = 1; i < secondary_memory.inode.number_of_blocks; i++)
      {
-          printf("blocks number: %d, next block number: %d \n", i, db.disk[i].next);
+          fread(&buffer, sizeof(Block), 1, secondary_memory.disk);
+          printf("blocks number: %d, next block number: %d \n", i, buffer.next);
      }
 }
 
-void createDataFile() {
-     Meta inode;
-     int recordType;
-     printf("Enter the name of the file: ");
-     scanf("%11[^\n]", inode.name);
-     printf("Enter the number of records: ");
-     scanf("%d", &inode.FileSizeInRecords);
-     do
-     {
-          printf("choose the type of the record: \n[0] ->  Client \n[1] -> Product\nanswer: ");
-          scanf("%d", &recordType);
-     } while (recordType != 1 && recordType != 0);
+// void createDataFile() {
+//      Meta inode;
+//      int recordType;
+//      printf("Enter the name of the file: ");
+//      scanf("%11[^\n]", inode.name);
+//      printf("Enter the number of records: ");
+//      scanf("%d", &inode.FileSizeInRecords);
+//      do
+//      {
+//           printf("choose the type of the record: \n[0] ->  Client \n[1] -> Product\nanswer: ");
+//           scanf("%d", &recordType);
+//      } while (recordType != 1 && recordType != 0);
 
-     int nbrRecordsPerBlock;
-     switch (recordType)
-     {
-     case 0:
-          nbrRecordsPerBlock = db.blockDataSize / sizeof(Client);
-          inode.FileSizeInBlocks = ceil((double)inode.FileSizeInRecords / nbrRecordsPerBlock);
-          break;
-     case 1:
-          nbrRecordsPerBlock = db.blockDataSize / sizeof(Product);
-          inode.FileSizeInBlocks = ceil((double)inode.FileSizeInRecords / nbrRecordsPerBlock);
-          break;
-     default:
-          break;
-     }
+//      int nbrRecordsPerBlock;
+//      switch (recordType)
+//      {
+//      case 0:
+//           nbrRecordsPerBlock = db.blockDataSize / sizeof(Client);
+//           inode.FileSizeInBlocks = ceil((double)inode.FileSizeInRecords / nbrRecordsPerBlock);
+//           break;
+//      case 1:
+//           nbrRecordsPerBlock = db.blockDataSize / sizeof(Product);
+//           inode.FileSizeInBlocks = ceil((double)inode.FileSizeInRecords / nbrRecordsPerBlock);
+//           break;
+//      default:
+//           break;
+//      }
 
-     do
-     {
-          printf("choose one of the following global organisation modes:\n[0] -> contiguous \n[1] -> chained\nanswer:");
-          scanf("%d", &inode.globalOrganisationMode);
-     } while (inode.globalOrganisationMode != 1 && inode.globalOrganisationMode != 0);
+//      do
+//      {
+//           printf("choose one of the following global organisation modes:\n[0] -> contiguous \n[1] -> chained\nanswer:");
+//           scanf("%d", &inode.globalOrganisationMode);
+//      } while (inode.globalOrganisationMode != 1 && inode.globalOrganisationMode != 0);
      
-     do
-     {
-          printf("choose one of the following global organisation modes:\n[0] -> fixed size \n[1] -> variable size\nanswer:");
-          scanf("%d", &inode.internalOrganisationMode);
-     } while (inode.internalOrganisationMode != 1 && inode.internalOrganisationMode != 0);
+//      do
+//      {
+//           printf("choose one of the following internal organisation modes:\n[0] -> sorted \n[1] -> not sorted\nanswer:");
+//           scanf("%d", &inode.internalOrganisationMode);
+//      } while (inode.internalOrganisationMode != 1 && inode.internalOrganisationMode != 0);
 
-     printf("name: %s, num records: %d, num blocks: %d, global mode: %d, internal mode: %d \n", inode.name, inode.FileSizeInRecords, inode.FileSizeInBlocks, inode.globalOrganisationMode, inode.internalOrganisationMode);
-}
+//      printf("name: %s, num records: %d, num blocks: %d, global mode: %d, internal mode: %d \n", inode.name, inode.FileSizeInRecords, inode.FileSizeInBlocks, inode.globalOrganisationMode, inode.internalOrganisationMode);
+// }
 
-int findFreeBlock() {
+// int findFreeBlock() {
      
-}
+// }
 
 int main() {
      initFileSystem(); // init system
-     loadFileSystem(); // read the data from file system
      printFileSystem(); // print the file system
-     createDataFile();
+     // createDataFile();
      printf("working");
      return 0;
 }
