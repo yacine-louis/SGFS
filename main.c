@@ -54,7 +54,6 @@ struct Product
 };
 
 // Functions associated with virtual disk
-Meta* inodes;
 MS secondary_memory; 
 
 void initFileSystem() {
@@ -205,8 +204,60 @@ void createFile() {
 }
 
 int findFreeBlock() {
-     
+     rewind(secondary_memory.disk);
+     Block buffer;
+
+     fread(&buffer, sizeof(Block), 1, secondary_memory.disk);
+     int i = 0;
+     int exist = 0;
+     while(i < secondary_memory.inode.block_data_size && exist == 0) {
+          if(buffer.data[i] == 0) {
+               exist = 1;
+               return i;
+          }
+          i++;
+     }
+     return -1;
 }
+
+int findFreeAdjacentBlocks(int file_size_in_blocks) {
+     if(file_size_in_blocks > secondary_memory.inode.number_of_blocks) {
+          return -1;
+     } else {
+          int n;
+          int exist = 0;
+          rewind(secondary_memory.disk);
+          Block buffer;
+          fread(&buffer, sizeof(Block), 1, secondary_memory.disk);
+
+          int i = 0;
+          while (i < secondary_memory.inode.block_data_size && exist == 0)
+          {
+               if(buffer.data[i] == 0) {
+                    int start = i;
+                    n = file_size_in_blocks;
+                    while(buffer.data[i] == 0 && n > 0) {
+                         i++;
+                         n--;
+                    }
+
+                    if(n == 0) {
+                         exist = 1;
+                         return start;
+                    }
+               } else {
+                    i++;
+               }
+          }
+          
+          if(exist = 0) {
+               // propose Compactage
+               return -1;
+          }
+     }
+}
+
+
 
 int main() {
      initFileSystem(); // init system
