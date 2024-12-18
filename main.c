@@ -17,7 +17,7 @@ struct Block {
 };
 
 struct Meta {
-     char name[12];
+     char name[16];
      int start_block; // First block of the file
      int file_size_in_blocks; 
      int file_size_in_records;
@@ -30,7 +30,7 @@ struct MSMeta {
      int block_size;
      int block_data_size;
      int number_of_meta;
-     int size_of_meta;
+     int meta_per_block;
 };
 
 struct MS {
@@ -46,51 +46,39 @@ struct Client
      float balance;
 };
 
-struct Product
-{ // sizeof(Product) = 24 Byte
-     int ID;
-     char name[16];
-     float price;
-};
-
 // Functions associated with virtual disk
-MS secondary_memory; 
+ 
 
-void initFileSystem() {
+void initFileSystem(MS* secondary_memory) {
 
      // initialize informations about the MS
-     secondary_memory.inode.number_of_blocks = 256;
-     secondary_memory.inode.block_size = sizeof(Block);
-     secondary_memory.inode.block_data_size = sizeof(Block) - sizeof(int);
-     secondary_memory.inode.number_of_meta = 10;
-     secondary_memory.inode.size_of_meta = sizeof(Meta);
+     secondary_memory->inode.number_of_blocks = 256;
+     secondary_memory->inode.block_size = sizeof(Block);
+     secondary_memory->inode.block_data_size = sizeof(Block) - sizeof(int);
+     secondary_memory->inode.number_of_meta = 10;
+     secondary_memory->inode.meta_per_block = secondary_memory->inode.block_data_size / sizeof(Meta);
      // create the file system
-     secondary_memory.disk = fopen("database", "w+");
+     secondary_memory->disk = fopen("database", "w+");
 
-     // db.disk = malloc(db.numberOfBlocks * sizeof(Block));
-
-    
      Block bloc;
      Block buffer;
      // initialize the allocation table
-     for (int i = 0; i < secondary_memory.inode.block_data_size; i++)
+     for (int i = 0; i < secondary_memory->inode.block_data_size; i++)
      {
           bloc.data[i] = 0;
      }
      buffer = bloc;
-     fwrite(&buffer, sizeof(Block), 1, secondary_memory.disk);
+     fwrite(&buffer, sizeof(Block), 1, secondary_memory->disk);
      
      // initialize metadata
-     
      Meta inode;
-     int nbr_meta_per_block = secondary_memory.inode.block_data_size / sizeof(Meta);
-     Meta metabuffer[nbr_meta_per_block];
-     int nbr_block = ceil((double)secondary_memory.inode.number_of_meta / nbr_meta_per_block);
+     Meta metabuffer[secondary_memory->inode.meta_per_block];
+     int nbr_block = ceil((double)secondary_memory->inode.number_of_meta / secondary_memory->inode.meta_per_block);
      int k = 0;
      for (int i = 0; i < nbr_block; i++)
      {
           int j = 0;
-          while (j < nbr_meta_per_block && k < secondary_memory.inode.number_of_meta)
+          while (j < secondary_memory->inode.meta_per_block && k < secondary_memory->inode.number_of_meta)
           {
                strcpy(inode.name, "hello");
                inode.start_block = -1;
@@ -102,55 +90,54 @@ void initFileSystem() {
                j++;
                k++;
           }
-          fwrite(metabuffer, sizeof(Block), 1, secondary_memory.disk);
+          fwrite(metabuffer, sizeof(Block), 1, secondary_memory->disk);
      }
      
      // initialize the disk blocks
-     for (int i = 1; i < secondary_memory.inode.number_of_blocks; i++)
+     for (int i = 1; i < secondary_memory->inode.number_of_blocks; i++)
      {
-          for (int j = 0; j < secondary_memory.inode.block_data_size; j++)
+          for (int j = 0; j < secondary_memory->inode.block_data_size; j++)
           {
                bloc.data[j] = 0;
           }
           bloc.next = -1;
           buffer = bloc;
-          fwrite(&buffer, sizeof(Block), 1, secondary_memory.disk);
+          fwrite(&buffer, sizeof(Block), 1, secondary_memory->disk);
      }
 
 }
 
-void printFileSystem() {
+void printFileSystem(MS* secondary_memory) {
 
      printf("MS informations: \n");
-     printf("number of blocks: %d \n", secondary_memory.inode.number_of_blocks);
-     printf("block size: %d \n", secondary_memory.inode.block_size);
-     printf("block data size: %d \n", secondary_memory.inode.block_data_size);
-     printf("number of metadata: %d \n", secondary_memory.inode.number_of_meta);
+     printf("number of blocks: %d \n", secondary_memory->inode.number_of_blocks);
+     printf("block size: %d \n", secondary_memory->inode.block_size);
+     printf("block data size: %d \n", secondary_memory->inode.block_data_size);
+     printf("number of metadata: %d \n", secondary_memory->inode.number_of_meta);
 
      Block buffer;
 
-     secondary_memory.disk = fopen("database", "r");
-     rewind(secondary_memory.disk);
+     secondary_memory->disk = fopen("database", "r");
+     rewind(secondary_memory->disk);
 
      printf("allocation table: \n");
-     fread(&buffer, sizeof(Block), 1, secondary_memory.disk);
-     for (int i = 0; i < secondary_memory.inode.block_data_size; i++)
+     fread(&buffer, sizeof(Block), 1, secondary_memory->disk);
+     for (int i = 0; i < secondary_memory->inode.block_data_size; i++)
      {
           printf("%d ", buffer.data[i]);
      }
      printf("\n");
 
      printf("meta data: \n");
-     int nbr_meta_per_block = secondary_memory.inode.block_data_size / sizeof(Meta);
-     Meta metabuffer[nbr_meta_per_block];
-     int nbr_block = ceil((double)secondary_memory.inode.number_of_meta / nbr_meta_per_block);
+     Meta metabuffer[secondary_memory->inode.meta_per_block];
+     int nbr_block = ceil((double)secondary_memory->inode.number_of_meta / secondary_memory->inode.meta_per_block);
 
      int k = 0;
      for (int i = 0; i < nbr_block; i++)
      {
-          fread(metabuffer, sizeof(Block), 1, secondary_memory.disk);
+          fread(metabuffer, sizeof(Block), 1, secondary_memory->disk);
           int j = 0;
-          while (j < nbr_meta_per_block && k < secondary_memory.inode.number_of_meta)
+          while (j < secondary_memory->inode.meta_per_block && k < secondary_memory->inode.number_of_meta)
           {
                printf("file name: %s, startBlock: %d, FileSizeInBlocks: %d, fileSizeInRecords: %d, globalOrganisationMode: %d, internalOrganisationMode: %d", metabuffer->name, metabuffer->start_block, metabuffer->file_size_in_blocks, metabuffer->file_size_in_records, metabuffer->global_organisation_mode, metabuffer->internal_organisation_mode);
                printf("\n");
@@ -158,90 +145,37 @@ void printFileSystem() {
                k++;
           }
      }
-     fseek(secondary_memory.disk, (nbr_block + 1) * sizeof(Block), SEEK_SET);
+     fseek(secondary_memory->disk, (nbr_block + 1) * sizeof(Block), SEEK_SET);
      printf("blocks: \n");
-     for (int i = 1; i < secondary_memory.inode.number_of_blocks; i++)
+     for (int i = 1; i < secondary_memory->inode.number_of_blocks; i++)
      {
-          fread(&buffer, sizeof(Block), 1, secondary_memory.disk);
+          fread(&buffer, sizeof(Block), 1, secondary_memory->disk);
           printf("blocks number: %d, next block number: %d \n", i, buffer.next);
      }
 }
 
-void createFile() {
-     Meta inode;
-     int recordType;
-     printf("Enter the name of the file: ");
-     scanf("%11[^\n]", inode.name);
-     printf("Enter the number of records: ");
-     scanf("%d", &inode.file_size_in_records);
-     do
-     {
-          printf("choose the type of the record: \n[0] ->  Client \n[1] -> Product\nanswer: ");
-          scanf("%d", &recordType);
-     } while (recordType != 0 && recordType != 1);
-
-     int nbr_records_per_block;
-     if(recordType == 0) {
-          nbr_records_per_block = secondary_memory.inode.block_data_size / sizeof(Client); 
-     } else {
-          nbr_records_per_block = secondary_memory.inode.block_data_size / sizeof(Product);
-     }
-     inode.file_size_in_blocks = ceil((double)inode.file_size_in_records / nbr_records_per_block);
-
-     do
-     {
-          printf("choose one of the following global organisation modes:\n[0] -> contiguous \n[1] -> chained\nanswer:");
-          scanf("%d", &inode.global_organisation_mode);
-     } while (inode.global_organisation_mode != 0 && inode.global_organisation_mode != 1);
-     
-     do
-     {
-          printf("choose one of the following internal organisation modes:\n[0] -> sorted \n[1] -> not sorted\nanswer:");
-          scanf("%d", &inode.internal_organisation_mode);
-     } while (inode.internal_organisation_mode != 0 && inode.internal_organisation_mode != 1);
-
-     printf("name: %s, num records: %d, num blocks: %d, global mode: %d, internal mode: %d \n", inode.name, inode.file_size_in_records, inode.file_size_in_blocks, inode.global_organisation_mode, inode.internal_organisation_mode);
-}
-
-int findFreeBlock() {
-     rewind(secondary_memory.disk);
-     Block buffer;
-
-     fread(&buffer, sizeof(Block), 1, secondary_memory.disk);
-     int i = 0;
-     int exist = 0;
-     while(i < secondary_memory.inode.block_data_size && exist == 0) {
-          if(buffer.data[i] == 0) {
-               exist = 1;
-               return i;
-          }
-          i++;
-     }
-     return -1;
-}
-
-int findFreeAdjacentBlocks(int file_size_in_blocks) {
-     if(file_size_in_blocks > secondary_memory.inode.number_of_blocks) {
+int findFreeAdjacentBlocks(MS* secondary_memory, int file_size_in_blocks) {
+     if(file_size_in_blocks > secondary_memory->inode.number_of_blocks) {
           return -1;
      } else {
-          int n;
+          int remaining_blocks_needed;
           int exist = 0;
-          rewind(secondary_memory.disk);
+          rewind(secondary_memory->disk);
           Block buffer;
-          fread(&buffer, sizeof(Block), 1, secondary_memory.disk);
+          fread(&buffer, sizeof(Block), 1, secondary_memory->disk);
 
           int i = 0;
-          while (i < secondary_memory.inode.block_data_size && exist == 0)
+          while (i < secondary_memory->inode.block_data_size && exist == 0)
           {
                if(buffer.data[i] == 0) {
                     int start = i;
-                    n = file_size_in_blocks;
-                    while(buffer.data[i] == 0 && n > 0) {
+                    remaining_blocks_needed = file_size_in_blocks;
+                    while(buffer.data[i] == 0 && remaining_blocks_needed > 0) {
                          i++;
-                         n--;
+                         remaining_blocks_needed--;
                     }
 
-                    if(n == 0) {
+                    if(remaining_blocks_needed == 0) {
                          exist = 1;
                          return start;
                     }
@@ -257,12 +191,90 @@ int findFreeAdjacentBlocks(int file_size_in_blocks) {
      }
 }
 
+void createFile(MS* secondary_memory) {
+     Meta inode;
+     int recordType;
+
+     // Prompt for the file name
+     do {
+          printf("Enter the name of the file (max %d characters): ", sizeof(inode.name));
+          scanf("%s", inode.name);
+
+          // Clear input buffer to remove leftover characters
+
+          if (strlen(inode.name) > sizeof(inode.name)) {
+               printf("Error: File name must not exceed %d characters.\n", sizeof(inode.name));
+          } else {
+               break;
+        }
+     } while (1);
+    
+     // Prompt for the number of records
+     do {
+          printf("Enter the number of records (positive integer): ");
+          if (scanf("%d", &inode.file_size_in_records) != 1 || inode.file_size_in_records <= 0) {
+               printf("Invalid input. Please enter a positive integer.\n");
+          } else {
+               break;
+          }
+     } while (1);
+
+    // Calculate the number of records per block 
+     int records_per_block = secondary_memory->inode.block_data_size / sizeof(Client);
+
+
+     inode.file_size_in_blocks = (int)ceil((double)inode.file_size_in_records / records_per_block);
+
+    // Prompt for the global organization mode
+    do {
+        printf("Choose one of the following global organization modes:\n[0] -> Contiguous\n[1] -> Chained\nAnswer: ");
+        if (scanf("%d", &inode.global_organisation_mode) != 1 || 
+            (inode.global_organisation_mode != 0 && inode.global_organisation_mode != 1)) {
+            printf("Invalid input. Please enter 0 or 1.\n");
+        } else {
+            break;
+        }
+    } while (1);
+
+    // Prompt for the internal organization mode
+    do {
+        printf("Choose one of the following internal organization modes:\n[0] -> Sorted\n[1] -> Not Sorted\nAnswer: ");
+        if (scanf("%d", &inode.internal_organisation_mode) != 1 || 
+            (inode.internal_organisation_mode != 0 && inode.internal_organisation_mode != 1)) {
+            printf("Invalid input. Please enter 0 or 1.\n");
+        } else {
+            break;
+        }
+    } while (1);
+
+    // Display the file metadata
+    printf("\nFile Metadata:\n");
+    printf("Name: %s\n", inode.name);
+    printf("Number of Records: %d\n", inode.file_size_in_records);
+    printf("Number of Blocks: %d\n", inode.file_size_in_blocks);
+    printf("Global Organization Mode: %s\n", 
+           (inode.global_organisation_mode == 0) ? "Contiguous" : "Chained");
+    printf("Internal Organization Mode: %s\n", 
+           (inode.internal_organisation_mode == 0) ? "Sorted" : "Not Sorted");
+}
+
+
+void fillFileData(MS* secondary_memory, Meta inode) {
+     fseek(secondary_memory->disk, inode.start_block * sizeof(Block), SEEK_SET);
+     
+}
+
 
 
 int main() {
-     initFileSystem(); // init system
-     printFileSystem(); // print the file system
-     createFile();
+
+     MS secondary_memory;
+     initFileSystem(&secondary_memory); // init system
+     printFileSystem(&secondary_memory); // print the file system
+
+     int nbr_free_blocks = sizeof(secondary_memory.inode.block_data_size) - 1;
+
+     createFile(&secondary_memory);
      printf("working");
      return 0;
 }
