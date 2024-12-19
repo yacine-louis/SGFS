@@ -23,6 +23,7 @@ struct Meta {
      int file_size_in_records;
      int global_organisation_mode; // 0 for contiguous, 1 for chained, -1 when initialize
      int internal_organisation_mode; // 0 for records not sorted, 1 for records sorted, -1 when initialize
+     int records_per_block;
 };
 
 struct MSMeta {
@@ -39,7 +40,7 @@ struct MS {
 };
 
 struct Client 
-{ // sizeof(Client) = 32 Byte
+{ 
      int ID;
      char name[20];
      int age;
@@ -86,6 +87,7 @@ void initFileSystem(MS* secondary_memory) {
                inode.file_size_in_records = 0;
                inode.global_organisation_mode = -1;
                inode.internal_organisation_mode = -1;
+               inode.records_per_block = 0;
                metabuffer[j] = inode;
                j++;
                k++;
@@ -193,7 +195,6 @@ int findFreeAdjacentBlocks(MS* secondary_memory, int file_size_in_blocks) {
 
 void createFile(MS* secondary_memory) {
      Meta inode;
-     int recordType;
 
      // Prompt for the file name
      do {
@@ -220,21 +221,21 @@ void createFile(MS* secondary_memory) {
      } while (1);
 
     // Calculate the number of records per block 
-     int records_per_block = secondary_memory->inode.block_data_size / sizeof(Client);
+     inode.records_per_block = secondary_memory->inode.block_data_size / sizeof(Client);
+     
 
-
-     inode.file_size_in_blocks = (int)ceil((double)inode.file_size_in_records / records_per_block);
+     inode.file_size_in_blocks = (int)ceil((double)inode.file_size_in_records / inode.records_per_block);
 
     // Prompt for the global organization mode
-    do {
-        printf("Choose one of the following global organization modes:\n[0] -> Contiguous\n[1] -> Chained\nAnswer: ");
-        if (scanf("%d", &inode.global_organisation_mode) != 1 || 
-            (inode.global_organisation_mode != 0 && inode.global_organisation_mode != 1)) {
-            printf("Invalid input. Please enter 0 or 1.\n");
-        } else {
-            break;
-        }
-    } while (1);
+     do {
+          printf("Choose one of the following global organization modes:\n[0] -> Contiguous\n[1] -> Chained\nAnswer: ");
+          if (scanf("%d", &inode.global_organisation_mode) != 1 || 
+               (inode.global_organisation_mode != 0 && inode.global_organisation_mode != 1)) {
+               printf("Invalid input. Please enter 0 or 1.\n");
+          } else {
+               break;
+          }
+     } while (1);
 
     // Prompt for the internal organization mode
     do {
@@ -262,6 +263,32 @@ void createFile(MS* secondary_memory) {
 void fillFileData(MS* secondary_memory, Meta inode) {
      fseek(secondary_memory->disk, inode.start_block * sizeof(Block), SEEK_SET);
      
+     Client c;
+     Client bufferC[inode.records_per_block];
+     int k = 0;
+     srand(time(NULL));
+     Block bloc;
+
+     for (int i = 0; i < inode.file_size_in_blocks; i++)
+     {
+          int j = 0;
+          while (j < inode.records_per_block && k < inode.file_size_in_records)
+          {
+               c.ID = k;
+               strcpy(c.name, "Client " + i);
+               c.age = 20 + rand() % (50 + 1); // Generate a random number between 20 and 70
+               c.balance = 1000 + (rand() / (float)RAND_MAX) * (5000 - 1000); // Generate a random floating-point number between 1000 and 5000
+               bufferC[j] = c;
+               j++;
+               k++;
+          }
+          fwrite(bufferC, sizeof(Block), 1, secondary_memory->disk);
+          fseek(secondary_memory->disk, -sizeof(Block), SEEK_CUR);
+          fread(&bloc, sizeof(Block), 1, secondary_memory->disk);
+          printf("%d \n",bloc.next);
+     }
+     
+
 }
 
 
@@ -275,6 +302,8 @@ int main() {
      int nbr_free_blocks = sizeof(secondary_memory.inode.block_data_size) - 1;
 
      createFile(&secondary_memory);
+     Meta inode;
+     fillFileData(&secondary_memory, inode);
      printf("working");
      return 0;
 }
