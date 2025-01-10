@@ -1,5 +1,6 @@
 main.exe
 test.c
 test.exe
-filesystem.c
-filesystem.exe
+testing.c
+testing.exe
+.vscode
